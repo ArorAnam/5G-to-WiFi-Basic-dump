@@ -1,33 +1,51 @@
-# load additional Python modules
 import socket
 import time
 
-# create TCP/IP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+host = socket.gethostname()  # as both code is running on same pc
+port = 5006  # socket server port number
 
-# retrieve local hostname
-local_hostname = socket.gethostname()
+def client_program():
 
-# get fully qualified hostname
-local_fqdn = socket.getfqdn()
-
-# get the according IP address
-ip_address = socket.gethostbyname(local_hostname)
-
-# bind the socket to the port 23456, and connect
-server_address = (ip_address, 23456)
-sock.connect(server_address)
-print ("connecting to %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
-
-# define example data to be sent to the server
-temperature_data = ["15", "22", "21", "26", "25", "19"]
-for entry in temperature_data:
-    print ("data: %s" % entry)
-    new_data = str("temperature: %s\n" % entry).encode("utf-8")
-    sock.sendall(new_data)
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # instantiate
     
-    # wait for two seconds
-    time.sleep(2)
+    try:
+        client_socket.connect((host, port))  # connect to the server
+    except IOError:
+      print('couldnt connect. Retrying')
+      time.sleep(3)
+      try:
+          s.connect((TCP_IP, TCP_PORT_Hospital))
+      except IOError:
+          print('Could not connect. Retry later.')
+          client_socket.close()
+          exit()
 
-# close connection
-sock.close()
+    message = input("Phone Number -> ")  # take input
+
+    while True:
+        # send Phone Number
+        client_socket.send(message.encode())
+        
+        # receiev OTP from Wifi AP
+        totp = client_socket.recv(1024).decode()  # receive response
+
+        print('Received OTP from server: ' + totp)  # show in terminal
+        break
+
+    # Take OTP:
+    message = input("Enter OTP -> ")
+
+    while True:
+        client_socket.send(str(totp).encode())
+
+        # receive auth success / failure
+        auth_result = client_socket.recv(1024).decode()
+
+        print('User device authentication : ' + auth_result)
+        break
+
+    client_socket.close()  # close the connection
+
+
+if __name__ == '__main__':
+    client_program()

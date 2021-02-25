@@ -1,48 +1,58 @@
-# load additional Python module
 import socket
+import pyotp
+import time
 
-# create TCP/IP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# get the hostname
+host = socket.gethostname()
+port = 5006  # initiate port no above 1024
 
-# retrieve local hostname
-local_hostname = socket.gethostname()
+def start_Wifi_Server():
 
-# get fully qualified hostname
-local_fqdn = socket.getfqdn()
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # get instance
+    # look closely. The bind() function takes tuple as argument
+    server_socket.bind((host, port))  # bind host address and port together
 
-# get the according IP address
-ip_address = socket.gethostbyname(local_hostname)
+    # configure how many client the server can listen simultaneously
+    server_socket.listen(5)
+    conn, address = server_socket.accept()  # accept new connection
+    print("Connection from: " + str(address))
+    
+    
+    while 1:
+        try:
+            # receive data stream. it won't accept data packet greater than 1024 bytes
+            data = conn.recv(1024).decode()
+        except ConnectionReseteError:
+            print("Issue in reading data.")
+            continue
+    
+        print ("Mobile number of connected user: " + str(data))
 
-# output hostname, domain name and IP address
-print ("working on %s (%s) with %s" % (local_hostname, local_fqdn, ip_address))
+        # generate a OTP for 30 secs
+        totp = pyotp.TOTP('base32secret3232')
+        
+        # OTP Byte
+        totpByte = totp.now().encode()
+        # Send the OTP to User device
+        conn.send(totpByte)
+        break
 
-# bind the socket to the port 23456
-server_address = (ip_address, 23456)
-print ('starting up on %s port %s' % server_address)
-sock.bind(server_address)
+    while 1:
+        try:
+            otp = conn.recv(1024).decode()
+        except ConnectionReseteError:
+            print("Issue in reading data.")
+            continue
 
-# listen for incoming connections (server mode) with one connection at a time
-sock.listen(1)
+        if totp.verify(otp):
+            conn.send('Authenticaiton Successfull !!'.encode())
+        else:
+            conn.send('Authentication failed !!'.encode())
+        break
 
-while True:
-    # wait for a connection
-    print ('waiting for a connection')
-    connection, client_address = sock.accept()
+    conn.close()  # close the connection
+    server_socket.close()
 
-    try:
-        # show who connected to us
-        print ('connection from', client_address)
 
-        # receive the data in small chunks and print it
-        while True:
-            data = connection.recv(64)
-            if data:
-                # output received data
-                print ("Data: %s" % data)
-            else:
-                # no more data -- quit the loop
-                print ("no more data.")
-                break
-    finally:
-        # Clean up the connection
-        connection.close()
+if __name__ == '__main__':
+    start_Wifi_Server()
