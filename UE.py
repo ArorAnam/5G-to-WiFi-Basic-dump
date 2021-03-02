@@ -1,8 +1,9 @@
 import socket
 import time
+import json
 
 host = socket.gethostname()  # as both code is running on same pc
-port = 5006  # socket server port number
+port = 5009  # socket server port number
 
 def client_program():
 
@@ -14,7 +15,7 @@ def client_program():
       print('couldnt connect. Retrying')
       time.sleep(3)
       try:
-          s.connect((TCP_IP, TCP_PORT_Hospital))
+          client_socket.connect((host, port))
       except IOError:
           print('Could not connect. Retry later.')
           client_socket.close()
@@ -45,6 +46,37 @@ def client_program():
         break
 
     client_socket.close()  # close the connection
+
+
+    # Recieve OTP(mno) from MNO directly
+    MNO_port = 5030
+
+    UE_MNO_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # get instance
+    # look closely. The bind() function takes tuple as argument
+    UE_MNO_socket.bind((host, MNO_port))  # bind host address and port together
+
+    # configure how many client the server can listen simultaneously
+    UE_MNO_socket.listen(5)
+    conn, address = UE_MNO_socket.accept()  # accept new connection
+    print("Connection from: " + str(address))
+    
+    
+    b = b''
+    while 1:
+        try:
+            # receive data stream. it won't accept data packet greater than 1024 bytes
+            OTP_MNO = conn.recv(1024).decode()
+        except ConnectionReseteError:
+            print("Issue in reading data.")
+            continue
+    
+        print ("OTP Received from MNO : " + OTP_MNO)
+        break
+
+
+    # close the connection with MNO
+    conn.close()
+    UE_MNO_socket.close()
 
 
 if __name__ == '__main__':

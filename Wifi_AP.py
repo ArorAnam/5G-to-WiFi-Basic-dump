@@ -4,7 +4,7 @@ import time
 
 # get the hostname
 host = socket.gethostname()
-port = 5006  # initiate port no above 1024
+port = 5009  # initiate port no above 1024
 
 def start_Wifi_Server():
 
@@ -45,13 +45,41 @@ def start_Wifi_Server():
             continue
 
         if totp.verify(otp):
-            conn.send('Authenticaiton Successfull !!'.encode())
+            conn.send('Authenticaiton Successfull !!'.encode())        
         else:
             conn.send('Authentication failed !!'.encode())
         break
 
-    conn.close()  # close the connection
+
+    # close the connection with the user device
+    conn.close() 
     server_socket.close()
+
+
+    # make connection with the smart contract and send it the user's mobile number
+    contract_port= 5010
+    AP_contract_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # instantiate
+
+    try:
+        AP_contract_socket.connect((host, contract_port))  # connect to the server
+    except IOError:
+        print('couldnt connect. Retrying')
+        time.sleep(3)
+        try:
+            AP_contract_socket.connect((host, contract_port))
+        except IOError:
+            print('Could not connect. Retry later.')
+            AP_contract_socket.close()
+            exit()
+
+    # send Phone Number to smart contract
+    while True:
+        AP_contract_socket.send(data.encode())
+        
+        break
+
+    # close the connection with smart contract
+    AP_contract_socket.close()
 
 
 if __name__ == '__main__':
