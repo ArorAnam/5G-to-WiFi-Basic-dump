@@ -1,6 +1,7 @@
 import socket
 import pyotp
 import time
+import pickle
 
 # get the hostname
 host = socket.gethostname()
@@ -51,11 +52,6 @@ def start_Wifi_Server():
         break
 
 
-    # close the connection with the user device
-    conn.close() 
-    server_socket.close()
-
-
     # make connection with the smart contract and send it the user's mobile number
     contract_port= 5010
     AP_contract_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # instantiate
@@ -77,6 +73,32 @@ def start_Wifi_Server():
         AP_contract_socket.send(data.encode())
         
         break
+
+
+    # Retreive OTP(mno) fomr user deveice
+    OTP_MNO = conn.recv(1024).decode()
+
+    # Send this OTP to smart contract along with the AUth Flag
+    contract_message = {
+                        'OTP': OTP_MNO, 
+                        'Auth_Flag': True
+                       }
+    AP_contract_socket.send(pickle.dumps(contract_message))
+
+
+    # Receive OTP verificatin result from smart contract
+    otp_verify = AP_contract_socket.recv(1024)
+    decoded_otp_verify = pickle.loads (otp_verify)
+
+
+    # Send result to user ddeive - UE
+    # And grant gateway access
+    conn.send(decoded_otp_verify['result'].encode())
+
+
+    # close the connection with the user device
+    conn.close() 
+    server_socket.close()
 
     # close the connection with smart contract
     AP_contract_socket.close()

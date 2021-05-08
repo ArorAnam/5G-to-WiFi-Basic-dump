@@ -1,6 +1,7 @@
 import socket
 import pyotp
 import time
+import pickle
 
 # get the hostname
 host = socket.gethostname()
@@ -30,11 +31,6 @@ def start_Contract_Server():
         break
 
 
-    # close the connection with wifiAP
-    conn.close()
-    server_socket.close()
-
-
     # make connection with MNO and send mobile number
     MNO_port= 5020
     contract_MNO_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # instantiate
@@ -56,19 +52,46 @@ def start_Contract_Server():
         contract_MNO_socket.send(mobile_no.encode())
         
         # receiev OTP from MNO
-        b = b''
-        while 1:
-            hotp_tmp = contract_MNO_socket.recv(1024)  # receive response
-            b += hotp_tmp
+        # b = b''
+        # while 1:
+        #     hotp_tmp = contract_MNO_socket.recv(1024)  # receive response
+        #     b += hotp_tmp
 
-        decoded_hotp = json.loads (b.decode('utf-8'))
+        # decoded_hotp = json.loads (b.decode('utf-8'))
 
-        print('Received OTP(mno) from MNO: ' + str(decoded_hotp))  # show in terminal
+        hotp = contract_MNO_socket.recv(1024)
+        decoded_hotp = pickle.loads (hotp) 
+
+        # print('Received OTP(mno) from MNO: ' + str(decoded_hotp))  # show in terminal
         break
 
     # close the connection with smart contract
     contract_MNO_socket.close()
 
+
+    # Receive OTP(mno) & Auth from Wifi
+    otp_dict = conn.recv(1024)
+    decoded_otp_dict = pickle.loads (otp_dict)
+
+    # check if OTP_Check_1 = OTP_Check_2
+    if decoded_hotp['OTP'] == decoded_otp_dict['OTP'] and decoded_otp_dict['Auth_Flag'] and decoded_hotp['Auth_Flag']:
+       print ("Smart Contract Executed !!")
+
+       # send confirmation to WifiAP
+       result_json = {'result': 'Smart Contract Execution Successful. Internet Access Granted.',
+                    'Access': True}
+       conn.send(pickle.dumps (result_json))
+
+    else:
+        print ("OTP do not match ! Try Again.")
+        result_json = {'result': 'Smart Contract Execution Successful. Internet Access Denied.',
+                    'Access': False}
+        conn.send(pickle.dumps (result_json))
+
+
+    # close the connection with wifiAP
+    conn.close()
+    server_socket.close()
 
 
 if __name__ == '__main__':

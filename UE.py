@@ -1,3 +1,5 @@
+import uvicorn
+
 import socket
 import time
 import json
@@ -21,6 +23,10 @@ def client_program():
           client_socket.close()
           exit()
 
+    # go to app homepage
+    # homepage()
+
+    # print("Phone Number -> " + phone_number)
     message = input("Phone Number -> ")  # take input
 
     while True:
@@ -45,8 +51,6 @@ def client_program():
         print('User device authentication : ' + auth_result)
         break
 
-    client_socket.close()  # close the connection
-
 
     # Recieve OTP(mno) from MNO directly
     MNO_port = 5030
@@ -60,8 +64,7 @@ def client_program():
     conn, address = UE_MNO_socket.accept()  # accept new connection
     print("Connection from: " + str(address))
     
-    
-    b = b''
+
     while 1:
         try:
             # receive data stream. it won't accept data packet greater than 1024 bytes
@@ -78,6 +81,22 @@ def client_program():
     conn.close()
     UE_MNO_socket.close()
 
+    # Take OTP:
+    mno_otp = input("Enter OTP -> ")
+
+    # Send the otp received from to WiFi
+    # Basically entering it on a page sent by WiFi
+    client_socket.send(str(mno_otp).encode())
+
+    # Receive result of OTP verification from Wifi
+    execution_result = client_socket.recv(1024).decode()
+
+    print (execution_result)
+
+    # close connection with Wifi
+    client_socket.close()
+
 
 if __name__ == '__main__':
+    # app.run()
     client_program()
